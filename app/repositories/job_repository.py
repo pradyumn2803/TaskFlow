@@ -1,6 +1,10 @@
 from sqlalchemy.orm import Session
 from app.models.job import Job
-from sqlalchemy import select
+from sqlalchemy import select,update
+
+from app.models.job import Job,JobStatus
+from uuid import UUID
+from datetime import datetime,timezone
 
 class JobRepository:
 
@@ -25,3 +29,21 @@ class JobRepository:
 
         return list(db.scalars(statement).all())
 
+    @staticmethod
+    def claim_job(
+        db:Session,
+        job_id:UUID
+    )->bool:
+        
+        statement = (update(Job).where(
+            Job.id == job_id,
+            Job.status == JobStatus.PENDING
+        ).values(
+            status = JobStatus.RUNNING,
+            started_at = datetime.now(timezone.utc)
+        ))
+
+        result = db.execute(statement)
+        db.commit()
+
+        return result.rowcount == 1

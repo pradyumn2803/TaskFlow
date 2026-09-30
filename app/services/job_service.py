@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from app.models.job import Job
 from app.repositories.job_repository import JobRepository
-
+from app.queue import enqueue_job
+from uuid import UUID
 
 
 class JobService:
@@ -15,7 +16,11 @@ class JobService:
             payload = job.payload
         )
 
-        return JobRepository.create(job=new_job,db=db)
+        new_job= JobRepository.create(job=new_job,db=db)
+
+        enqueue_job(str(new_job.id))
+
+        return new_job
 
     @staticmethod
     def get_job_service(job_id,db)->Job:
@@ -24,5 +29,9 @@ class JobService:
     @staticmethod
     def fetch_all_jobs_service(db)->Job:
         return JobRepository.get_jobs(db=db)
+
+    @staticmethod
+    def claim_job(job_id:UUID,db:Session)->bool:
+        return JobRepository.claim_job(job_id=job_id,db=db)
 
     
