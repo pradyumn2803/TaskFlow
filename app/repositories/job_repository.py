@@ -47,3 +47,41 @@ class JobRepository:
         db.commit()
 
         return result.rowcount == 1
+
+    @staticmethod
+    def mark_success(
+        job_id:UUID,
+        db:Session
+    )->None:
+        statement = (
+            update(Job).where(
+                Job.id == job_id
+            ).values(
+                status = JobStatus.SUCCESS,
+                completed_at = datetime.now(timezone.utc),
+            )
+        )
+
+        db.execute(statement)
+        db.commit()
+
+    @staticmethod
+    def mark_fail(
+        job_id:UUID,
+        db:Session,
+        error:str
+    )->None:
+        statement = (
+            update(Job).where(
+                Job.id == job_id
+            ).values(
+                status = JobStatus.FAILED,
+                completed_at = datetime.now(timezone.utc),
+                error = error
+            )
+        )
+
+        db.execute(statement)
+        db.commit()
+
+    

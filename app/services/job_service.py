@@ -34,4 +34,10 @@ class JobService:
     def claim_job(job_id:UUID,db:Session)->bool:
         return JobRepository.claim_job(job_id=job_id,db=db)
 
-    
+    @staticmethod
+    def mark_success(job_id:UUID,db:Session)->None:
+        JobRepository.mark_success(job_id=job_id,db=db)
+
+    @staticmethod
+    def mark_fail(job_id:UUID,error:str,db:Session)->None:
+        JobRepository.mark_fail(job_id=job_id,error=error,db=db)

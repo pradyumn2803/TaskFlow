@@ -4,6 +4,7 @@ from app.database import SessionLocal
 from uuid import UUID
 from app.models.job import Job
 from app.services.job_service import JobService
+from app.workers.handlers.dispatcher import execute_job
 
 
 def start_worker():
@@ -26,8 +27,33 @@ def start_worker():
             if claimed is None:
                 print(f"job already claimed: {job_id}")
                 continue
+            job = db.get(Job,job_id)
+
+            if not job:
+                raise ValueError(f"job not found for this id:{job_id}")
 
             print(f"executing job {job_id}")
+
+            try:
+                execute_job(
+                    job.job_type,
+                    job.payload
+                )
+
+                JobService.mark_success(
+                    job_id=job_id,
+                    db=db
+                )
+
+                print(f"Job {job_id} completed successfully")
+
+            except Exception as e:
+                JobService.mark_fail(
+                    job_id=job_id,
+                    error=str(e),
+                    db=db
+                )
+                print(f"Job {job_id} failed: {e}")
             
         finally:
             db.close()
