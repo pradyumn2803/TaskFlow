@@ -41,3 +41,7 @@ class JobService:
     @staticmethod
     def mark_fail(job_id:UUID,error:str,db:Session)->None:
         JobRepository.mark_fail(job_id=job_id,error=error,db=db)
+
+    @staticmethod
+    def retry_job(job_id:UUID,db:Session)->None:
+        JobRepository.retry_job(job_id=job_id,db=db)

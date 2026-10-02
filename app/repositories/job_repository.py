@@ -40,7 +40,8 @@ class JobRepository:
             Job.status == JobStatus.PENDING
         ).values(
             status = JobStatus.RUNNING,
-            started_at = datetime.now(timezone.utc)
+            started_at = datetime.now(timezone.utc),
+            attempt_count = Job.attempt_count+1
         ))
 
         result = db.execute(statement)
@@ -79,6 +80,24 @@ class JobRepository:
                 completed_at = datetime.now(timezone.utc),
                 error = error
             )
+        )
+
+        db.execute(statement)
+        db.commit()
+
+    @staticmethod
+    def retry_job(
+        job_id:UUID,
+        db:Session
+    )->None:
+
+        statement = update(Job).where(
+            Job.job_id == job_id,
+            Job.status == JobStatus.RUNNING
+        ).values(
+            status = JobStatus.PENDING,
+            started_at = None,
+            error = None
         )
 
         db.execute(statement)
