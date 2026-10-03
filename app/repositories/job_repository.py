@@ -37,7 +37,7 @@ class JobRepository:
         
         statement = (update(Job).where(
             Job.id == job_id,
-            Job.status == JobStatus.PENDING
+            Job.status == JobStatus.QUEUED
         ).values(
             status = JobStatus.RUNNING,
             started_at = datetime.now(timezone.utc),
@@ -88,19 +88,56 @@ class JobRepository:
     @staticmethod
     def retry_job(
         job_id:UUID,
-        db:Session
+        db:Session,
+        next_retry_at:datetime
     )->None:
 
         statement = update(Job).where(
-            Job.job_id == job_id,
+            Job.id == job_id,
             Job.status == JobStatus.RUNNING
         ).values(
             status = JobStatus.PENDING,
             started_at = None,
-            error = None
+            error = None,
+            next_retry_at = next_retry_at
         )
 
         db.execute(statement)
         db.commit()
 
+
+    @staticmethod
+    def get_due_retry_jobs(
+        db:Session
+    )->list[Job] :
+
+        statement = select(Job).where(
+            Job.status == JobStatus.PENDING,
+            Job.next_retry_at.is_not(None),
+            Job.next_retry_at <= datetime.now(timezone.utc)
+        ).order_by(Job.next_retry_at.asc())
+
+        return list(db.scalars(statement).all())
+
+    @staticmethod
+    def claim_retry_due_job(
+        db:Session,
+        job_id:UUID
+    )->bool:
+        
+        statement = (
+            update(Job).where(
+            Job.id == job_id,
+            Job.status == JobStatus.PENDING,
+            Job.next_retry_at.is_not(None),
+            Job.next_retry_at <= datetime.now(timezone.utc)
+        ).values(
+            status = JobStatus.QUEUED,
+            next_retry_at = None
+        ))
+
+        result = db.execute(statement)
+        db.commit()
+
+        return result.rowcount == 1
     

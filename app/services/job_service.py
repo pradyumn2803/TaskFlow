@@ -3,6 +3,8 @@ from app.models.job import Job
 from app.repositories.job_repository import JobRepository
 from app.queue import enqueue_job
 from uuid import UUID
+from datetime import datetime
+from app.models.job import JobStatus
 
 
 class JobService:
@@ -13,7 +15,8 @@ class JobService:
             job_name = job.job_name,
             description = job.description,
             job_type = job.job_type,
-            payload = job.payload
+            payload = job.payload,
+            status = JobStatus.QUEUED
         )
 
         new_job= JobRepository.create(job=new_job,db=db)
@@ -43,5 +46,14 @@ class JobService:
         JobRepository.mark_fail(job_id=job_id,error=error,db=db)
 
     @staticmethod
-    def retry_job(job_id:UUID,db:Session)->None:
-        JobRepository.retry_job(job_id=job_id,db=db)
+    def retry_job(job_id:UUID,next_retry_at:datetime, db:Session)->None:
+        JobRepository.retry_job(job_id=job_id,next_retry_at=next_retry_at, db=db)
+
+    @staticmethod
+    def get_due_retry_jobs(db:Session)->list[Job]:
+        return JobRepository.get_due_retry_jobs(db=db)
+
+    @staticmethod
+    def claim_due_retry_jobs(job_id:UUID,db:Session)->bool:
+        return JobRepository.claim_retry_due_job(db=db,job_id=job_id)
+    

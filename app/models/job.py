@@ -15,6 +15,7 @@ class JobStatus(str, enum.Enum):
     RUNNING = "RUNNING"
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
+    QUEUED = "QUEUED"
 
 
 class Job(Base):
@@ -66,6 +67,11 @@ class Job(Base):
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
+    )
+
+    next_retry_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
     )
 
     error: Mapped[str | None] = mapped_column(
